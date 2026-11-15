@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROXY '26 BOT WARS - Live Arena & Replay Center</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Orbitron:wght@600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Bar -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-logo">⚔️</div>
+        <div>
+          <h1 class="brand-title">PROXY '26 <span class="highlight">BOT WARS</span></h1>
+          <p class="brand-subtitle">Autonomous Strategy Battle Arena</p>
+        </div>
+      </div>
+
+      <!-- Live Match Scoreboard -->
+      <div class="match-scoreboard">
+        <div class="team-panel blue-team">
+          <div class="team-badge">BLUE</div>
+          <div class="team-details">
+            <span class="team-name" id="blue-name">StarterBot</span>
+            <div class="team-quick-stats">
+              <span>HP: <b id="blue-base-hp">500</b></span>
+              <span>RES: <b id="blue-res">100</b></span>
+              <span>UNITS: <b id="blue-units">4</b></span>
+            </div>
+          </div>
+          <div class="team-score" id="blue-score">0.0</div>
+        </div>
+
+        <div class="match-meta">
+          <div class="turn-counter">TURN <span id="current-turn">0</span> / <span id="max-turns">150</span></div>
+          <div class="match-status" id="match-status-badge">READY</div>
+        </div>
+
+        <div class="team-panel red-team">
+          <div class="team-score" id="red-score">0.0</div>
+          <div class="team-details" style="text-align: right;">
+            <span class="team-name" id="red-name">BaselineBot</span>
+            <div class="team-quick-stats">
+              <span>UNITS: <b id="red-units">4</b></span>
+              <span>RES: <b id="red-res">100</b></span>
+              <span>HP: <b id="red-base-hp">500</b></span>
+            </div>
+          </div>
+          <div class="team-badge">RED</div>
+        </div>
+      </div>
+
+      <!-- Top Actions -->
+      <div class="header-actions">
+        <button id="btn-open-match-modal" class="btn btn-primary">⚡ Run Live Match</button>
+        <button id="btn-open-tournament" class="btn btn-secondary">🏆 Tournament</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <!-- Battlefield Viewport -->
+      <section class="battlefield-container">
+        <div class="canvas-wrapper">
+          <canvas id="battlefield-canvas" width="840" height="840"></canvas>
+          <div id="canvas-overlay" class="canvas-overlay hidden">
+            <div class="victory-card">
+              <h2 id="victory-title">VICTORY</h2>
+              <p id="victory-reason">Base Destroyed</p>
+              <button id="btn-overlay-replay" class="btn btn-primary">Watch Replay</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Battlefield Controls -->
+        <div class="battlefield-controls">
+          <div class="playback-buttons">
+            <button id="btn-prev-turn" class="btn-ctrl" title="Step Back (Left Arrow)">⏮</button>
+            <button id="btn-play-pause" class="btn-ctrl btn-play" title="Play/Pause (Space)">▶</button>
+            <button id="btn-next-turn" class="btn-ctrl" title="Step Forward (Right Arrow)">⏭</button>
+            <button id="btn-restart" class="btn-ctrl" title="Restart">↺</button>
+          </div>
+
+          <div class="scrubber-container">
+            <input type="range" id="turn-slider" min="0" max="150" value="0" step="1">
+          </div>
+
+          <div class="playback-options">
+            <div class="control-group">
+              <label>SPEED:</label>
+              <select id="speed-select" class="select-ctrl">
+                <option value="500">0.5x</option>
+                <option value="250" selected>1x</option>
+                <option value="120">2x</option>
+                <option value="50">5x</option>
+                <option value="20">10x</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label>VISION:</label>
+              <select id="vision-mode-select" class="select-ctrl">
+                <option value="spectator">Spectator (Full)</option>
+                <option value="blue">Blue Fog</option>
+                <option value="red">Red Fog</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sidebar -->
+      <aside class="sidebar-container">
+        <!-- Tabs -->
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="tab-inspector">Inspector</button>
+          <button class="tab-btn" data-tab="tab-events">Events</button>
+          <button class="tab-btn" data-tab="tab-scores">Scoring</button>
+          <button class="tab-btn" data-tab="tab-replays">Replays</button>
+        </div>
+
+        <!-- Inspector Tab -->
+        <div id="tab-inspector" class="tab-content active">
+          <div class="inspector-card" id="inspector-card">
+            <div class="card-empty-state" id="inspector-placeholder">
+              Hover or click on any unit, base, or structure to view tactical telemetry.
+            </div>
+            <div class="inspector-details hidden" id="inspector-body">
+              <div class="inspector-header">
+                <div class="unit-avatar" id="insp-avatar">⚔️</div>
+                <div>
+                  <h3 id="insp-name">Soldier #1</h3>
+                  <span class="badge" id="insp-team-badge">BLUE</span>
+                </div>
+              </div>
+
+              <div class="stat-bar-group">
+                <div class="stat-label"><span>HEALTH</span><span id="insp-hp-text">100 / 100</span></div>
+                <div class="progress-bar"><div class="progress-fill hp-fill" id="insp-hp-fill" style="width: 100%;"></div></div>
+              </div>
+
+              <div class="stat-grid">
+                <div class="stat-box"><span class="lbl">ATTACK</span><span class="val" id="insp-attack">20</span></div>
+                <div class="stat-box"><span class="lbl">RANGE</span><span class="val" id="insp-range">2</span></div>
+                <div class="stat-box"><span class="lbl">SPEED</span><span class="val" id="insp-speed">2</span></div>
+                <div class="stat-box"><span class="lbl">VISION</span><span class="val" id="insp-vision">5</span></div>
+                <div class="stat-box"><span class="lbl">POS (X,Y)</span><span class="val" id="insp-pos">10, 10</span></div>
+                <div class="stat-box"><span class="lbl">CARRY</span><span class="val" id="insp-carry">0</span></div>
+              </div>
+
+              <div class="last-action-box">
+                <span class="lbl">LAST ACTION</span>
+                <p id="insp-action" class="val-mono">None</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Unit Legend -->
+          <div class="unit-legend">
+            <h4>TACTICAL UNIT SPECIFICATIONS</h4>
+            <div class="legend-item"><span class="u-icon scout" style="color:var(--color-blue);">🏎️</span><span><b>Scout:</b> Light Buggy | HP 40 | Atk 5 | Spd 4 | Vis 10</span></div>
+            <div class="legend-item"><span class="u-icon soldier" style="color:#ff5555;">⚔️</span><span><b>Soldier:</b> Exoskeleton Marine | HP 100 | Atk 20 | Spd 2</span></div>
+            <div class="legend-item"><span class="u-icon tank" style="color:#00ffaa;">🛡️</span><span><b>Tank:</b> Heavy Siege Tank | HP 250 | Atk 40 | Cannon</span></div>
+            <div class="legend-item"><span class="u-icon miner" style="color:var(--color-gold);">⛏️</span><span><b>Miner:</b> Harvester Rig | HP 60 | Extractor Drill</span></div>
+            <div class="legend-item"><span class="u-icon engineer" style="color:#bf00ff;">🔧</span><span><b>Engineer:</b> Fabrication Walker | HP 70 | Welding Crane</span></div>
+          </div>
+        </div>
+
+        <!-- Event Log Tab -->
+        <div id="tab-events" class="tab-content">
+          <div class="event-feed-header">
+            <h4>COMBAT & STRATEGY FEED</h4>
+            <button id="btn-clear-events" class="btn-link">Clear</button>
+          </div>
+          <div class="event-feed-list" id="event-feed-list">
+            <!-- Populated via script.js -->
+          </div>
+        </div>
+
+        <!-- Scoring Tab -->
+        <div id="tab-scores" class="tab-content">
+          <h4>OFFICIAL SCORING WEIGHTS</h4>
+          <p class="section-desc">Weighted real-time deterministic performance calculation:</p>
+          <div class="scoring-bars">
+            <div class="score-category">
+              <div class="cat-header"><span>Combat (30%)</span><span id="score-val-combat">0.0</span></div>
+              <div class="progress-bar"><div class="progress-fill combat-fill" id="fill-combat" style="width: 0%;"></div></div>
+            </div>
+            <div class="score-category">
+              <div class="cat-header"><span>Resource & Territory (20%)</span><span id="score-val-resource">0.0</span></div>
+              <div class="progress-bar"><div class="progress-fill resource-fill" id="fill-resource" style="width: 0%;"></div></div>
+            </div>
+            <div class="score-category">
+              <div class="cat-header"><span>Strategic Decision (20%)</span><span id="score-val-strategic">0.0</span></div>
+              <div class="progress-bar"><div class="progress-fill strategic-fill" id="fill-strategic" style="width: 0%;"></div></div>
+            </div>
+            <div class="score-category">
+              <div class="cat-header"><span>Efficiency / Speed (15%)</span><span id="score-val-efficiency">0.0</span></div>
+              <div class="progress-bar"><div class="progress-fill efficiency-fill" id="fill-efficiency" style="width: 0%;"></div></div>
+            </div>
+            <div class="score-category">
+              <div class="cat-header"><span>Adaptability / Recon (15%)</span><span id="score-val-adaptability">0.0</span></div>
+              <div class="progress-bar"><div class="progress-fill adaptability-fill" id="fill-adaptability" style="width: 0%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Replays Tab -->
+        <div id="tab-replays" class="tab-content">
+          <div class="replay-actions">
+            <h4>MATCH ARCHIVE</h4>
+            <div class="file-uploader">
+              <input type="file" id="replay-file-input" accept=".json" style="display: none;">
+              <button id="btn-upload-replay" class="btn btn-secondary btn-sm">📂 Load Local JSON</button>
+              <button id="btn-refresh-replays" class="btn btn-secondary btn-sm">🔄 Refresh List</button>
+            </div>
+          </div>
+          <div class="replay-list" id="server-replay-list">
+            <!-- Populated via API -->
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Run Match Modal -->
+  <div id="modal-run-match" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Launch Autonomous Match</h3>
+        <button class="modal-close" id="modal-close-run">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Blue Team Bot Script:</label>
+          <input type="text" id="run-blue-bot" class="form-input" value="bots/starter_bot.py">
+        </div>
+        <div class="form-group">
+          <label>Red Team Bot Script:</label>
+          <input type="text" id="run-red-bot" class="form-input" value="bots/baseline_bot.py">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Max Turns:</label>
+            <input type="number" id="run-turns" class="form-input" value="150" min="10" max="300">
+          </div>
+          <div class="form-group">
+            <label>Random Seed:</label>
+            <input type="number" id="run-seed" class="form-input" value="42">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-cancel-run" class="btn btn-secondary">Cancel</button>
+        <button id="btn-start-simulation" class="btn btn-primary">Simulate & Watch</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tournament Modal -->
+  <div id="modal-tournament" class="modal hidden">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>🏆 PROXY '26 Tournament Dashboard</h3>
+        <button class="modal-close" id="modal-close-tourney">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="tourney-subtabs">
+          <button class="tourney-tab-btn active" data-subtab="tourney-leaderboard">Leaderboard</button>
+          <button class="tourney-tab-btn" data-subtab="tourney-bracket">Brackets</button>
+          <button class="tourney-tab-btn" data-subtab="tourney-registration">Register Team</button>
+        </div>
+
+        <div id="tourney-leaderboard" class="tourney-subcontent active">
+          <table class="data-table" id="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th>Played</th>
+                <th>W</th>
+                <th>L</th>
+                <th>D</th>
+                <th>Avg Score</th>
+                <th>Total Score</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-tbody"></tbody>
+          </table>
+        </div>
+
+        <div id="tourney-bracket" class="tourney-subcontent">
+          <div class="bracket-tree" id="bracket-tree"></div>
+        </div>
+
+        <div id="tourney-registration" class="tourney-subcontent">
+          <form id="team-reg-form" class="reg-form">
+            <div class="form-group">
+              <label>Team Name:</label>
+              <input type="text" id="reg-team-name" class="form-input" required placeholder="e.g. CyberKnights">
+            </div>
+            <div class="form-group">
+              <label>Institution / College:</label>
+              <input type="text" id="reg-institution" class="form-input" placeholder="e.g. CSE Dept, Tech Fest">
+            </div>
+            <div class="form-group">
+              <label>Team Members:</label>
+              <input type="text" id="reg-members" class="form-input" placeholder="e.g. Alex, Jordan">
+            </div>
+            <div class="form-group">
+              <label>Bot Script Path:</label>
+              <input type="text" id="reg-bot-path" class="form-input" placeholder="bots/example_strategies/rusher_bot.py">
+            </div>
+            <button type="submit" class="btn btn-primary">Register & Validate Team</button>
+            <div id="reg-status-msg" style="margin-top: 10px;"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
+

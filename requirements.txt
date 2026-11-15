@@ -1,0 +1,5 @@
+# PROXY BOT WARS - Dependencies
+pytest>=8.0.0
+# Standard library is prioritized so participants need no heavy third-party packages.
+# Web server for visualizer & tournament management uses Python standard library http.server / json / sqlite3.
+
